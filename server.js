@@ -24,17 +24,18 @@ const io = new Server(server, {
 });
 
 // Import chatbot module
-const { generateResponse } = require('./chatbot'); // Adjusted path
+const { generateResponse } = require('./chatbot'); // Ensure chatbot.js exists
 
-// Middleware
-app.use(express.static(path.join(__dirname, 'public'))); // Updated path
+// Middleware to serve static files correctly
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname)); // Ensures main directory files are also accessible
 
 // Serve the main page
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html')); // Updated to correctly serve the file
 });
 
-// Validate API Key function
+// Function to validate API Key
 async function validateOpenAIKey(apiKey) {
   try {
     const openai = new OpenAI({ apiKey });
