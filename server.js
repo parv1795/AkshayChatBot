@@ -23,26 +23,27 @@ const io = new Server(server, {
   }
 });
 
-// Import chatbot 
-const { generateResponse } = require('./chatbot');
+// Import chatbot module
+const { generateResponse } = require('./chatbot'); // Adjusted path
 
 // Middleware
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, 'public'))); // Updated path
 
 // Serve the main page
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Validate API Key function
 async function validateOpenAIKey(apiKey) {
   try {
     const openai = new OpenAI({ apiKey });
-    
+
     // Simple test by listing models
     await openai.models.list();
     return true;
   } catch (error) {
+    console.error("❌ Invalid API Key:", error.message);
     return false;
   }
 }
@@ -54,18 +55,22 @@ io.on('connection', (socket) => {
   // API Key Validation
   socket.on('validate-api-key', async (apiKey) => {
     const isValid = await validateOpenAIKey(apiKey);
-    
+
     if (isValid) {
-      // Save the key to .env file
-      const envPath = path.join(process.cwd(), '.env');
-      fs.writeFileSync(envPath, `OPENAI_API_KEY=${apiKey}\nPORT=3000`, 'utf8');
-      
-      // Reload environment variables
-      require('dotenv').config();
-      
-      console.log('✅ API Key validated successfully!');
+      try {
+        // Save the key to .env file
+        const envPath = path.join(__dirname, '.env');
+        fs.writeFileSync(envPath, `OPENAI_API_KEY=${apiKey}\nPORT=3000`, 'utf8');
+
+        // Reload environment variables
+        dotenv.config();
+
+        console.log('✅ API Key validated and stored successfully!');
+      } catch (err) {
+        console.error('❌ Error writing .env file:', err.message);
+      }
     }
-    
+
     // Send validation result back to client
     socket.emit('api-key-validation', isValid);
   });
@@ -75,12 +80,12 @@ io.on('connection', (socket) => {
     try {
       // Generate AI response
       const botResponse = await generateResponse(msg);
-      
+
       // Emit the response back to the client
       socket.emit('bot response', botResponse);
     } catch (error) {
       console.error('❌ Error in chat message handler:', error);
-      socket.emit('bot response', 'Arre yaar, kuch gadbad ho gayi! 😅 Phir se try karo.');
+      socket.emit('bot response', 'Something went wrong! 😅 Please try again.');
     }
   });
 
